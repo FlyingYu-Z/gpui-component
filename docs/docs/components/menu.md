@@ -299,6 +299,46 @@ menu.min_w(px(200.))      // Minimum width
     .scrollable()         // Enable scrolling when content exceeds max height
 ```
 
+### Menu with Overlay
+
+Control whether the menu blocks background interactions with an overlay:
+
+```rust
+// Context Menu with Overlay
+div()
+    .child("Right-click me")
+    .child(
+        ContextMenu::new("my-menu")
+            .overlay(true)  // Enable overlay to block background interactions
+            .menu(|menu, window, cx| {
+                menu.menu("Copy", Box::new(Copy))
+                    .menu("Paste", Box::new(Paste))
+            })
+    )
+
+// Dropdown Menu with Overlay
+Button::new("menu-btn")
+    .label("Open Menu")
+    .dropdown_menu_with_overlay(true, |menu, window, cx| {
+        menu.menu("Action 1", Box::new(Action1))
+            .menu("Action 2", Box::new(Action2))
+    })
+
+// Dropdown Menu with Overlay and Custom Anchor
+Button::new("menu-btn")
+    .label("Open Menu")
+    .dropdown_menu_with_anchor_and_overlay(Corner::TopRight, true, |menu, window, cx| {
+        menu.menu("Action 1", Box::new(Action1))
+            .menu("Action 2", Box::new(Action2))
+    })
+```
+
+:::tip
+When overlay is enabled (`overlay(true)`), the menu will display a semi-transparent background that blocks interactions with elements behind the menu, similar to modal dialogs. This is useful when you want to ensure users focus on the menu without accidentally interacting with other UI elements.
+
+When overlay is disabled (default), the menu will still be displayed above other content, but users can interact with background elements.
+:::
+
 ### Action Context
 
 Set the focus context for handling menu actions:

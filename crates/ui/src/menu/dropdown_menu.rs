@@ -30,6 +30,36 @@ pub trait DropdownMenu: Styled + Selectable + InteractiveElement + IntoElement +
                 PopupMenu::build(window, cx, |menu, window, cx| f(menu, window, cx))
             })
     }
+
+    /// Create a dropdown menu with the given items, anchored to the TopLeft corner, with overlay support
+    fn dropdown_menu_with_overlay(
+        self,
+        overlay: bool,
+        f: impl Fn(PopupMenu, &mut Window, &mut Context<PopupMenu>) -> PopupMenu + 'static,
+    ) -> Popover<PopupMenu> {
+        self.dropdown_menu_with_anchor_and_overlay(Corner::TopLeft, overlay, f)
+    }
+
+    /// Create a dropdown menu with the given items, anchored to the given corner, with overlay support
+    fn dropdown_menu_with_anchor_and_overlay(
+        mut self,
+        anchor: impl Into<Corner>,
+        overlay: bool,
+        f: impl Fn(PopupMenu, &mut Window, &mut Context<PopupMenu>) -> PopupMenu + 'static,
+    ) -> Popover<PopupMenu> {
+        let style = self.style().clone();
+        let id = self.interactivity().element_id.clone();
+
+        Popover::new(SharedString::from(format!("dropdown-menu:{:?}", id)))
+            .no_style()
+            .trigger(self)
+            .trigger_style(style)
+            .anchor(anchor.into())
+            .overlay(overlay)
+            .content(move |window, cx| {
+                PopupMenu::build(window, cx, |menu, window, cx| f(menu, window, cx))
+            })
+    }
 }
 
 impl DropdownMenu for Button {}
