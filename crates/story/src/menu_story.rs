@@ -6,7 +6,7 @@ use gpui_component::{
     ActiveTheme as _, IconName,
     button::Button,
     h_flex,
-    menu::{ContextMenuExt, DropdownMenu as _, PopupMenuItem},
+    menu::{ContextMenu, ContextMenuExt, DropdownMenu as _, PopupMenuItem},
     v_flex,
 };
 use serde::Deserialize;
@@ -269,6 +269,79 @@ impl Render for MenuStory {
                                 }
                                 this.min_w(px(100.))
                             }),
+                    ),
+            )
+            .child(
+                section("Dropdown Menu with Overlay")
+                    .child(
+                        Button::new("dropdown-menu-overlay-1")
+                            .outline()
+                            .label("Dropdown Menu with Overlay")
+                            .dropdown_menu_with_overlay(true, move |this, window, cx| {
+                                this.link("About", "https://github.com/longbridge/gpui-component")
+                                    .separator()
+                                    .menu("Copy", Box::new(Copy))
+                                    .menu("Cut", Box::new(Cut))
+                                    .menu("Paste", Box::new(Paste))
+                                    .separator()
+                                    .menu_with_check("Toggle Check", checked, Box::new(ToggleCheck))
+                                    .separator()
+                                    .submenu("Settings", window, cx, move |menu, _, _| {
+                                        menu.menu("Info 0", Box::new(Info(0)))
+                                            .separator()
+                                            .menu("Item 1", Box::new(Info(1)))
+                                            .menu("Item 2", Box::new(Info(2)))
+                                    })
+                            }),
+                    )
+                    .child(
+                        Button::new("dropdown-menu-no-overlay")
+                            .outline()
+                            .label("Dropdown Menu without Overlay (default)")
+                            .dropdown_menu(move |this, _, _| {
+                                this.menu("Copy", Box::new(Copy))
+                                    .menu("Cut", Box::new(Cut))
+                                    .menu("Paste", Box::new(Paste))
+                            }),
+                    ),
+            )
+            .child(
+                section("Context Menu with Overlay")
+                    .child("Right click to open ContextMenu with Overlay")
+                    .min_h_20()
+                    .context_menu({
+                        move |this, window, cx| {
+                            this.external_link_icon(false)
+                                .link("About", "https://github.com/longbridge/gpui-component")
+                                .separator()
+                                .menu("Cut", Box::new(Cut))
+                                .menu("Copy", Box::new(Copy))
+                                .menu("Paste", Box::new(Paste))
+                                .separator()
+                                .menu_with_check("Toggle Check", checked, Box::new(ToggleCheck))
+                                .separator()
+                                .menu("Search All", Box::new(SearchAll))
+                        }
+                    })
+                    .child(
+                        div()
+                            .id("context-menu-overlay")
+                            .child("Right click to open ContextMenu with Overlay")
+                            .min_h_20()
+                            .bg(gpui::rgb(0xf0f0f0))
+                            .p_4()
+                            .rounded_md()
+                            .child(
+                                ContextMenu::new("context-menu-overlay-demo")
+                                    .overlay(true)
+                                    .menu(move |this, _, _| {
+                                        this.menu("Copy", Box::new(Copy))
+                                            .menu("Cut", Box::new(Cut))
+                                            .menu("Paste", Box::new(Paste))
+                                            .separator()
+                                            .menu_with_check("Toggle Check", checked, Box::new(ToggleCheck))
+                                    })
+                            )
                     ),
             )
     }

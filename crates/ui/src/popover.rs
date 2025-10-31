@@ -74,6 +74,7 @@ pub struct Popover<M: ManagedView> {
     trigger_style: Option<StyleRefinement>,
     mouse_button: MouseButton,
     no_style: bool,
+    overlay: bool,
 }
 
 impl<M> Popover<M>
@@ -90,6 +91,7 @@ where
             content: None,
             mouse_button: MouseButton::Left,
             no_style: false,
+            overlay: false,
         }
     }
 
@@ -139,6 +141,14 @@ where
     /// - The click out of the popover will not dismiss it.
     pub fn no_style(mut self) -> Self {
         self.no_style = true;
+        self
+    }
+
+    /// Set the overlay of the popover, defaults to `false`.
+    ///
+    /// When overlay is true, the background will be blocked from interactions.
+    pub fn overlay(mut self, overlay: bool) -> Self {
+        self.overlay = overlay;
         self
     }
 
@@ -274,11 +284,16 @@ impl<M: ManagedView> Element for Popover<M> {
                         let content_view_mut = element_state.content_view.clone();
                         let anchor = view.anchor;
                         let no_style = view.no_style;
+                        let overlay = view.overlay;
                         deferred(
                             anchored.child(
                                 div()
                                     .size_full()
-                                    .occlude()
+                                    .when(overlay, |this| {
+                                        this.occlude()
+                                            .bg(crate::modal::overlay_color(overlay, cx))
+                                    })
+                                    .when(!overlay, |this| this.occlude())
                                     .tab_group()
                                     .when(!no_style, |this| this.popover_style(cx))
                                     .map(|this| match anchor {
