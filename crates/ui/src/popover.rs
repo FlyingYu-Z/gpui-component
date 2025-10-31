@@ -1,5 +1,5 @@
 use gpui::{
-    anchored, deferred, div, prelude::FluentBuilder as _, px, AnyElement, App, Bounds, Context,
+    anchored, deferred, div, point, prelude::FluentBuilder as _, px, AnyElement, App, Bounds, Context,
     Corner, DismissEvent, DispatchPhase, Element, ElementId, Entity, EventEmitter, FocusHandle,
     Focusable, GlobalElementId, Hitbox, InteractiveElement as _, IntoElement, KeyBinding, LayoutId,
     ManagedView, MouseButton, MouseDownEvent, ParentElement, Pixels, Point, Render, Style,
@@ -273,42 +273,86 @@ impl<M: ManagedView> Element for Popover<M> {
                 if let Some(content_view) = element_state.content_view.borrow_mut().as_mut() {
                     is_open = true;
 
-                    let mut anchored = anchored()
-                        .snap_to_window_with_margin(px(8.))
-                        .anchor(view.anchor);
-                    if let Some(trigger_bounds) = element_state.trigger_bounds {
-                        anchored = anchored.position(view.resolved_corner(trigger_bounds));
-                    }
+                    let trigger_position = element_state.trigger_bounds
+                        .map(|bounds| view.resolved_corner(bounds));
+                    
+                    let viewport_size = window.viewport_size();
 
                     let mut element = {
                         let content_view_mut = element_state.content_view.clone();
                         let anchor = view.anchor;
                         let no_style = view.no_style;
                         let overlay = view.overlay;
+                        
                         deferred(
-                            anchored.child(
-                                div()
-                                    .size_full()
-                                    .occlude()
-                                    .when(overlay, |this| {
-                                        this.bg(crate::modal::overlay_color(overlay, cx))
-                                    })
-                                    .tab_group()
-                                    .when(!no_style, |this| this.popover_style(cx))
-                                    .map(|this| match anchor {
-                                        Corner::TopLeft | Corner::TopRight => this.top_1(),
-                                        Corner::BottomLeft | Corner::BottomRight => this.bottom_1(),
-                                    })
-                                    .child(content_view.clone())
-                                    .when(!no_style, |this| {
-                                        this.on_mouse_down_out(move |_, window, _| {
-                                            // Update the element_state.content_view to `None`,
-                                            // so that the `paint`` method will not paint it.
-                                            *content_view_mut.borrow_mut() = None;
-                                            window.refresh();
+                            if overlay {
+                                // When overlay is enabled, create a full-screen overlay
+                                anchored()
+                                    .position(point(px(0.), px(0.)))
+                                    .snap_to_window()
+                                    .child(
+                                        div()
+                                            .w(viewport_size.width)
+                                            .h(viewport_size.height)
+                                            .occlude()
+                                            .bg(crate::modal::overlay_color(overlay, cx))
+                                            .child(
+                                                // Position the popover at the trigger location
+                                                {
+                                                    let mut anchored_popover = anchored()
+                                                        .snap_to_window_with_margin(px(8.))
+                                                        .anchor(anchor);
+                                                    if let Some(pos) = trigger_position {
+                                                        anchored_popover = anchored_popover.position(pos);
+                                                    }
+                                                    anchored_popover.child(
+                                                        div()
+                                                            .size_full()
+                                                            .occlude()
+                                                            .tab_group()
+                                                            .when(!no_style, |this| this.popover_style(cx))
+                                                            .map(|this| match anchor {
+                                                                Corner::TopLeft | Corner::TopRight => this.top_1(),
+                                                                Corner::BottomLeft | Corner::BottomRight => this.bottom_1(),
+                                                            })
+                                                            .child(content_view.clone())
+                                                            .when(!no_style, |this| {
+                                                                this.on_mouse_down_out(move |_, window, _| {
+                                                                    *content_view_mut.borrow_mut() = None;
+                                                                    window.refresh();
+                                                                })
+                                                            })
+                                                    )
+                                                }
+                                            )
+                                    )
+                            } else {
+                                // When overlay is disabled, use the original implementation
+                                let mut anchored_popover = anchored()
+                                    .snap_to_window_with_margin(px(8.))
+                                    .anchor(anchor);
+                                if let Some(pos) = trigger_position {
+                                    anchored_popover = anchored_popover.position(pos);
+                                }
+                                anchored_popover.child(
+                                    div()
+                                        .size_full()
+                                        .occlude()
+                                        .tab_group()
+                                        .when(!no_style, |this| this.popover_style(cx))
+                                        .map(|this| match anchor {
+                                            Corner::TopLeft | Corner::TopRight => this.top_1(),
+                                            Corner::BottomLeft | Corner::BottomRight => this.bottom_1(),
                                         })
-                                    }),
-                            ),
+                                        .child(content_view.clone())
+                                        .when(!no_style, |this| {
+                                            this.on_mouse_down_out(move |_, window, _| {
+                                                *content_view_mut.borrow_mut() = None;
+                                                window.refresh();
+                                            })
+                                        })
+                                )
+                            }
                         )
                         .with_priority(1)
                         .into_any()
