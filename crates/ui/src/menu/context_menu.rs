@@ -169,9 +169,9 @@ impl Element for ContextMenu {
 
                                     this.child(
                                         div()
+                                            .occlude()
                                             .when(overlay, |this| {
-                                                this.occlude()
-                                                    .bg(crate::modal::overlay_color(overlay, cx))
+                                                this.bg(crate::modal::overlay_color(overlay, cx))
                                             })
                                             .child(menu.clone())
                                     )

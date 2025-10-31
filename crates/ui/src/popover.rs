@@ -289,11 +289,10 @@ impl<M: ManagedView> Element for Popover<M> {
                             anchored.child(
                                 div()
                                     .size_full()
+                                    .occlude()
                                     .when(overlay, |this| {
-                                        this.occlude()
-                                            .bg(crate::modal::overlay_color(overlay, cx))
+                                        this.bg(crate::modal::overlay_color(overlay, cx))
                                     })
-                                    .when(!overlay, |this| this.occlude())
                                     .tab_group()
                                     .when(!no_style, |this| this.popover_style(cx))
                                     .map(|this| match anchor {

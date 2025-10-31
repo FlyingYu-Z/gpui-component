@@ -303,46 +303,41 @@ impl Render for MenuStory {
                                     .menu("Cut", Box::new(Cut))
                                     .menu("Paste", Box::new(Paste))
                             }),
-                    ),
+                    )
+                    .child("Note: Click the buttons above to see the difference. With overlay, the background is blocked from interactions."),
             )
             .child(
                 section("Context Menu with Overlay")
-                    .child("Right click to open ContextMenu with Overlay")
-                    .min_h_20()
-                    .context_menu({
-                        move |this, window, cx| {
-                            this.external_link_icon(false)
-                                .link("About", "https://github.com/longbridge/gpui-component")
-                                .separator()
-                                .menu("Cut", Box::new(Cut))
-                                .menu("Copy", Box::new(Copy))
-                                .menu("Paste", Box::new(Paste))
-                                .separator()
-                                .menu_with_check("Toggle Check", checked, Box::new(ToggleCheck))
-                                .separator()
-                                .menu("Search All", Box::new(SearchAll))
-                        }
-                    })
                     .child(
                         div()
-                            .id("context-menu-overlay")
-                            .child("Right click to open ContextMenu with Overlay")
+                            .id("context-menu-overlay-demo")
+                            .child("Right click HERE to open ContextMenu with Overlay")
                             .min_h_20()
-                            .bg(gpui::rgb(0xf0f0f0))
+                            .bg(gpui::rgb(0xe0f0e0))
                             .p_4()
                             .rounded_md()
+                            .border_2()
+                            .border_color(gpui::rgb(0x90c090))
+                            .context_menu(move |this, _, _| {
+                                this.menu("Copy", Box::new(Copy))
+                                    .menu("Cut", Box::new(Cut))
+                                    .menu("Paste", Box::new(Paste))
+                                    .separator()
+                                    .menu_with_check("Toggle Check", checked, Box::new(ToggleCheck))
+                            })
                             .child(
-                                ContextMenu::new("context-menu-overlay-demo")
+                                ContextMenu::new("context-menu-overlay-inner")
                                     .overlay(true)
                                     .menu(move |this, _, _| {
-                                        this.menu("Copy", Box::new(Copy))
-                                            .menu("Cut", Box::new(Cut))
-                                            .menu("Paste", Box::new(Paste))
+                                        this.menu("Copy (with overlay)", Box::new(Copy))
+                                            .menu("Cut (with overlay)", Box::new(Cut))
+                                            .menu("Paste (with overlay)", Box::new(Paste))
                                             .separator()
                                             .menu_with_check("Toggle Check", checked, Box::new(ToggleCheck))
                                     })
                             )
-                    ),
+                    )
+                    .child("Note: The green area shows a context menu WITH overlay (blocking background interactions)."),
             )
     }
 }
