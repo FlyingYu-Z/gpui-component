@@ -1,10 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
 use gpui::{
-    anchored, deferred, div, prelude::FluentBuilder, px, relative, AnyElement, App, Context,
+    anchored, deferred, div, point, prelude::FluentBuilder, px, relative, AnyElement, App, Context,
     Corner, DismissEvent, Element, ElementId, Entity, Focusable, GlobalElementId,
     InspectorElementId, InteractiveElement, IntoElement, MouseButton, MouseDownEvent,
-    ParentElement, Pixels, Point, Position, Stateful, Style, Subscription, Window,
+    ParentElement, Pixels, Point, Position, Stateful, Style, Styled, Subscription, Window,
 };
 
 use crate::menu::PopupMenu;
@@ -26,6 +26,7 @@ pub struct ContextMenu {
     menu:
         Option<Box<dyn Fn(PopupMenu, &mut Window, &mut Context<PopupMenu>) -> PopupMenu + 'static>>,
     anchor: Corner,
+    overlay: bool,
 }
 
 impl ContextMenu {
@@ -34,6 +35,7 @@ impl ContextMenu {
             id: id.into(),
             menu: None,
             anchor: Corner::TopLeft,
+            overlay: false,
         }
     }
 
@@ -43,6 +45,15 @@ impl ContextMenu {
         F: Fn(PopupMenu, &mut Window, &mut Context<PopupMenu>) -> PopupMenu + 'static,
     {
         self.menu = Some(Box::new(builder));
+        self
+    }
+
+    /// Set the overlay of the context menu, defaults to `false`.
+    ///
+    /// When overlay is true, the background will be blocked from interactions.
+    #[must_use]
+    pub fn overlay(mut self, overlay: bool) -> Self {
+        self.overlay = overlay;
         self
     }
 
@@ -126,6 +137,7 @@ impl Element for ContextMenu {
         style.size.height = relative(1.).into();
 
         let anchor = self.anchor;
+        let overlay = self.overlay;
 
         self.with_element_state(
             id.unwrap(),
@@ -144,19 +156,49 @@ impl Element for ContextMenu {
                         .unwrap_or(false);
 
                     if has_menu_item {
+                        let viewport_size = window.viewport_size();
+                        
                         let mut menu_element = deferred(
-                            anchored()
-                                .position(position)
-                                .snap_to_window_with_margin(px(8.))
-                                .anchor(anchor)
-                                .when_some(menu_view, |this, menu| {
-                                    // Focus the menu, so that can be handle the action.
-                                    if !menu.focus_handle(cx).contains_focused(window, cx) {
-                                        menu.focus_handle(cx).focus(window);
-                                    }
-
-                                    this.child(div().occlude().child(menu.clone()))
-                                }),
+                            if overlay {
+                                // When overlay is enabled, create a full-screen overlay
+                                anchored()
+                                    .position(point(px(0.), px(0.)))
+                                    .snap_to_window()
+                                    .child(
+                                        div()
+                                            .w(viewport_size.width)
+                                            .h(viewport_size.height)
+                                            .occlude()
+                                            .bg(crate::modal::overlay_color(overlay, cx))
+                                            .child(
+                                                // Position the menu at the click location
+                                                anchored()
+                                                    .position(position)
+                                                    .snap_to_window_with_margin(px(8.))
+                                                    .anchor(anchor)
+                                                    .when_some(menu_view, |this, menu| {
+                                                        // Focus the menu, so that can be handle the action.
+                                                        if !menu.focus_handle(cx).contains_focused(window, cx) {
+                                                            menu.focus_handle(cx).focus(window);
+                                                        }
+                                                        this.child(div().occlude().child(menu.clone()))
+                                                    })
+                                            )
+                                    )
+                            } else {
+                                // When overlay is disabled, use the original implementation
+                                anchored()
+                                    .position(position)
+                                    .snap_to_window_with_margin(px(8.))
+                                    .anchor(anchor)
+                                    .when_some(menu_view, |this, menu| {
+                                        // Focus the menu, so that can be handle the action.
+                                        if !menu.focus_handle(cx).contains_focused(window, cx) {
+                                            menu.focus_handle(cx).focus(window);
+                                        }
+                                        this.child(div().occlude().child(menu.clone()))
+                                    })
+                            }
                         )
                         .with_priority(1)
                         .into_any();
